@@ -25,8 +25,37 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sha256sum quant/source_bundle.tar.gz
-          tar -xzf quant/source_bundle.tar.gz -C . || true
+          python - <<'PY'
+          import base64, hashlib, io, pathlib, tarfile
+          root = pathlib.Path('quant/source_parts')
+          expected = [
+              '3361a9b3e034227b5bee7dbccb818793008e8f93f2888d8ebacafac776135be1',
+              'c5ba53b60b234bb25f6791f6441eea7fbf599ed6255727fed4e92ba85ce59ec3',
+              '6e3b529a45072715ea7a796ab17c468c3ce054e53fa0962aaa22b954dd5de04b',
+              '3abe9cdf902b9644636bc833afd156a3d59b6c527d5af96ee88794b7a624d672',
+              '88728f088ab00c738b112a14c7b4163178677d5c6d3f2f2c1e0cf4f1a657b53f',
+              'ceb3ea21d8fa113c743810631dd2f1485064c73880b13f358680f71114a07d0f',
+              'd785f733935d89ca68a587c7107b97727d045cc7c90e5f92a4ef0642e96c0c6c',
+          ]
+          parts = []
+          for i, digest in enumerate(expected):
+              text = ''.join((root / f'part{i:02d}.b64').read_text().split())
+              raw = base64.b64decode(text, validate=True)
+              actual = hashlib.sha256(raw).hexdigest()
+              print(f'part{i:02d}: {len(raw)} bytes, SHA256 {actual}')
+              if actual != digest:
+                  raise RuntimeError(f'Source part {i} checksum mismatch')
+              parts.append(raw)
+          archive = b''.join(parts)
+          assert hashlib.sha256(archive).hexdigest() == '6bff289cb8f46370091810ca031fe54a90913986d96b674afadb363b3ca00fc6'
+          with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as tar:
+              for member in tar.getmembers():
+                  path = pathlib.PurePosixPath(member.name)
+                  if path.is_absolute() or '..' in path.parts or not (member.isfile() or member.isdir()):
+                      raise RuntimeError('Unsafe archive member')
+              tar.extractall('.', filter='data')
+          print('Source archive verified and extracted.')
+          PY
           cat <<'CHECKSUMS' | sha256sum -c -
           0e774bc6311c193d12ad457de6ea0bb84ae18ea7152142e4be90e7f82aca46e3  quant/research.py
           697538a5997b505498598f07b5ccfaf22a1dc1595117b40b9fe4b6f66761406a  quant/config.json
