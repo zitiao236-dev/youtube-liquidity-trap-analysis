@@ -18,8 +18,6 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -27,8 +25,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '6bff289cb8f46370091810ca031fe54a90913986d96b674afadb363b3ca00fc6  quant/source_bundle.tar.gz' | sha256sum -c -
+          sha256sum quant/source_bundle.tar.gz
           tar -xzf quant/source_bundle.tar.gz -C .
+          cat <<'CHECKSUMS' | sha256sum -c -
+          0e774bc6311c193d12ad457de6ea0bb84ae18ea7152142e4be90e7f82aca46e3  quant/research.py
+          697538a5997b505498598f07b5ccfaf22a1dc1595117b40b9fe4b6f66761406a  quant/config.json
+          60d67c6690c143e504e6313263c4c73ec0431d707bbd2351ce6959002d3f0efd  quant/requirements.txt
+          ebfb3fb0622a678c82d27d92eb7130ba0f112678d6aba5fdca5752e9e2763a2a  quant/__init__.py
+          07b97137c8c2c271c0c8c38e0bb3cb2ccf856eca8cafdc950dc9874d76184ea4  quant/README.md
+          f5f55711b1c2f1c55cade26be93450ff253e41b0e8bd809f7d804a1720011888  tests/test_quant.py
+          CHECKSUMS
       - name: Install research dependencies
         run: python -m pip install -r quant/requirements.txt
       - name: Run causal and accounting tests
