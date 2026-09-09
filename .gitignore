@@ -1,0 +1,22 @@
+# Copyrighted source material: keep local only
+data/transcripts/
+
+# Optional media and credentials
+*.mp3
+*.m4a
+*.mp4
+*.webm
+*.wav
+*.cookie
+cookies.txt
+.env
+
+# Python/editor artifacts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.idea/
+.vscode/
+
